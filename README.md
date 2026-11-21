@@ -84,3 +84,7 @@ Stream nhạc YouTube qua bot **vi phạm Điều khoản YouTube** (chỉ dùng
 
 - Không bao giờ commit `.env` / `cookies.txt` / token lên GitHub công khai.
 - Token lộ → vào Developer Portal → Reset Token ngay.
+
+## 6. Changelog
+
+- 2026-11-21: Fixed `/play` AttributeError — the text channel is now stored per guild in a dict instead of on the Guild object; `message_content` intent enabled.
