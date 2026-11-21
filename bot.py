@@ -56,8 +56,22 @@ YTDL_OPTS = {
     "default_search": "ytsearch",
     "source_address": "0.0.0.0",
     "cookiefile": COOKIE_FILE if os.path.exists(COOKIE_FILE) else None,
-    # Giam bi chan: gia lap trinh duyet, khong dung client android mac dinh cua yt-dlp moi
-    "extractor_args": {"youtube": {"player_client": ["web", "ios"]}},
+    "retries": 3,
+    "fragment_retries": 3,
+    "socket_timeout": 30,
+    "http_headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+    },
+    # Giam bi chan: thu nhieu client, bo qua webpage player de tranh bot-check
+    # Luu y: IP datacenter (Railway) van hay bi YouTube chan - cach chac nhat
+    # la them cookies.txt (xem COOKIES_TXT o tren, huong dan trong README).
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["web", "android", "ios"],
+            "player_skip": ["webpage", "configs"],
+        }
+    },
 }
 FFMPEG_OPTS = {
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
@@ -167,7 +181,15 @@ async def play(interaction: discord.Interaction, query: str):
     try:
         songs = await asyncio.to_thread(_extract, query)
     except Exception as e:
-        await interaction.followup.send(f"❌ Không lấy được nhạc từ YouTube: `{str(e)[:200]}`\nGợi ý: thử link khác, hoặc cập nhật yt-dlp / thêm cookies.txt (xem README).")
+        msg = str(e)
+        if "Sign in to confirm" in msg or "not a bot" in msg:
+            await interaction.followup.send(
+                "❌ YouTube chặn IP của server (Railway) nên không lấy được nhạc.\n"
+                "Cách sửa: thêm cookies YouTube vào Railway (biến COOKIES_TXT, xem README mục 4) "
+                "rồi thử lại. Dùng tài khoản Google phụ, không dùng tài khoản chính."
+            )
+        else:
+            await interaction.followup.send(f"❌ Không lấy được nhạc từ YouTube: `{msg[:200]}`\nGợi ý: thử link khác, hoặc cập nhật yt-dlp / thêm cookies.txt (xem README).")
         return
     if not songs:
         await interaction.followup.send("❌ Không tìm thấy bài hát nào.")
