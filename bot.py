@@ -63,13 +63,14 @@ YTDL_OPTS = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept-Language": "en-US,en;q=0.9",
     },
-    # Giam bi chan: thu nhieu client, bo qua webpage player de tranh bot-check
+    # Giam bi chan: thu nhieu client.
+    # BO QUA player_skip: bo qua webpage player lam mat mot so format,
+    # gay ra loi "Requested format is not available" tren Railway.
     # Luu y: IP datacenter (Railway) van hay bi YouTube chan - cach chac nhat
     # la them cookies.txt (xem COOKIES_TXT o tren, huong dan trong README).
     "extractor_args": {
         "youtube": {
             "player_client": ["web", "android", "ios"],
-            "player_skip": ["webpage", "configs"],
         }
     },
 }
@@ -104,8 +105,28 @@ def _extract(query: str) -> list[dict]:
     q = query.strip()
     if not YOUTUBE_RE.search(q):
         q = f"ytsearch1:{q}"
-    with yt_dlp.YoutubeDL(YTDL_OPTS) as ydl:
-        info = ydl.extract_info(q, download=False)
+    # Thu lan luot cac format: bestaudio truoc, roi best (video+audio,
+    # FFmpeg se lay phan tieng voi -vn), roi de yt-dlp tu chon.
+    # Mot so video tren Railway bao "Requested format is not available"
+    # voi bestaudio nhung lai co best, hoac nguoc lai.
+    last_err = None
+    for fmt in ("bestaudio/best", "best", None):
+        opts = dict(YTDL_OPTS)
+        if fmt is None:
+            opts.pop("format", None)
+        else:
+            opts["format"] = fmt
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(q, download=False)
+            break
+        except Exception as e:
+            last_err = e
+            print(f"yt-dlp format {fmt!r} failed: {e}")
+            info = None
+            continue
+    if last_err is not None and info is None:
+        raise last_err
     if not info:
         return []
     entries = info.get("entries") or [info]
