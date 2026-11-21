@@ -159,8 +159,14 @@ async def _play_next(guild: discord.Guild):
     song = q.pop(0)
     vol = volumes.get(guild.id, 0.5)
     try:
+        # Dung FFmpegPCMAudio, KHONG dung FFmpegOpusAudio: OpusAudio chi nhan
+        # stream da ma hoa Opus san. YouTube tra ve nhieu dinh dang khac nhau
+        # (m4a/AAC, webm, mp4 video+audio khi fallback sang "best") nen
+        # OpusAudio bao "AudioSource must not be Opus encoded" va bo het
+        # hang cho. PCMAudio giai ma bat ky dinh dang nao roi Discord
+        # tu ma hoa lai sang Opus khi phat.
         source = discord.PCMVolumeTransformer(
-            discord.FFmpegOpusAudio(song["url"], **FFMPEG_OPTS), volume=vol
+            discord.FFmpegPCMAudio(song["url"], **FFMPEG_OPTS), volume=vol
         )
     except Exception as e:
         print("FFmpeg error:", e)
