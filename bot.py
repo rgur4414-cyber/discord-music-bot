@@ -67,11 +67,16 @@ YOUTUBE_RE = re.compile(r"(https?://)?(www\.)?(youtube\.com|youtu\.be)/")
 
 intents = discord.Intents.default()
 intents.voice_states = True
+intents.message_content = True  # da bat trong Developer Portal, bat them o day de het warning
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # queue[guild_id] = list[dict(title, url, webpage_url, duration, requester)]
 queues: dict[int, list[dict]] = {}
 volumes: dict[int, float] = {}
+# text_channels[guild_id] = channel text dung de bao "dang phat"
+# Khong gan truc tiep len Guild: discord.py dung __slots__ nen Guild khong co
+# attribute tu do, gan guild._music_text_channel se loi AttributeError.
+text_channels: dict[int, object] = {}
 
 def _fmt_duration(sec):
     if not sec:
@@ -127,8 +132,8 @@ async def _play_next(guild: discord.Guild):
         await _play_next(guild)
         return
     vc.play(source, after=lambda err: asyncio.run_coroutine_threadsafe(_play_next(guild), bot.loop))
-    # Bao dang phat o channel text gan nhat (luu tam tren guild)
-    ch = getattr(guild, "_music_text_channel", None)
+    # Bao dang phat o channel text gan nhat (luu trong dict rieng)
+    ch = text_channels.get(guild.id)
     if ch:
         try:
             await ch.send(f"▶️ Đang phát: **{song['title']}** ({_fmt_duration(song['duration'])})")
@@ -152,7 +157,7 @@ async def play(interaction: discord.Interaction, query: str):
         return
     await interaction.response.defer()
     guild = interaction.guild
-    guild._music_text_channel = interaction.channel  # type: ignore
+    text_channels[guild.id] = interaction.channel
     vc = guild.voice_client
     if not vc:
         vc = await interaction.user.voice.channel.connect()
