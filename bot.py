@@ -56,9 +56,13 @@ YTDL_OPTS = {
     "default_search": "ytsearch",
     "source_address": "0.0.0.0",
     "cookiefile": COOKIE_FILE if os.path.exists(COOKIE_FILE) else None,
-    "retries": 3,
-    "fragment_retries": 3,
-    "socket_timeout": 30,
+    # Toc do: retry it, timeout ngan, bo qua kiem tra tung format URL.
+    # android/ios tra format nhanh nhat, khong can giai JS nhu web client,
+    # nen de android len dau; web chi la du phong cuoi.
+    "retries": 1,
+    "fragment_retries": 1,
+    "socket_timeout": 15,
+    "check_formats": False,
     "http_headers": {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept-Language": "en-US,en;q=0.9",
@@ -70,12 +74,13 @@ YTDL_OPTS = {
     # la them cookies.txt (xem COOKIES_TXT o tren, huong dan trong README).
     "extractor_args": {
         "youtube": {
-            "player_client": ["web", "android", "ios"],
+            "player_client": ["android", "ios", "web"],
         }
     },
 }
 FFMPEG_OPTS = {
-    "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
+    # probesize/analyzeduration thap: FFmpeg khoi dong nhanh hon, bot vao nhac som hon
+    "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -probesize 32k -analyzeduration 0",
     "options": "-vn",
 }
 YOUTUBE_RE = re.compile(r"(https?://)?(www\.)?(youtube\.com|youtu\.be)/")
